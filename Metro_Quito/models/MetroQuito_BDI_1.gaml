@@ -27,6 +27,19 @@ global {
 	// --- 3. VARIABLES GLOBALES ---
  graph red_vial;
 	graph red_metro;
+	// Lista de estaciones clave para simulación
+    list<estacion> estaciones_clave; 
+
+    // Mapeo de IDs según tu imagen (Asegúrate que el orden geográfico coincida)
+    // Asumiendo orden Sur -> Norte (Quitumbe es Y menor, Labrador es Y mayor)
+    map<int, string> nombres_clave <- [
+        15::"Quitumbe", 
+        11::"Recreo", 
+        8::"San Francisco", 
+        6::"UCE", 
+        4::"Carolina", 
+        1::"Labrador"
+    ];
 
 	// Parámetros
  int capacidad_tren <- 1200;
@@ -47,6 +60,22 @@ global {
 		create estacion from: file_estaciones {
 			passengers_waiting <- [];
 		}
+		// 2. ALGORITMO DE ASIGNACIÓN DE NOMBRES E IDs
+        // Ordenamos las estaciones de SUR a NORTE basándonos en la coordenada Y
+        list<estacion> estaciones_ordenadas <- estacion sort_by (each.location.y);
+		loop i from: 0 to: length(estaciones_ordenadas) - 1 {
+            estacion est <- estaciones_ordenadas[i];
+            est.id_visual <- i + 1; // Asigna ID del 1 al 15
+            
+            // Si el ID coincide con el mapa, le ponemos nombre real
+            if (nombres_clave contains_key (est.id_visual)) {
+                est.nombre_real <- nombres_clave[est.id_visual];
+                est.es_clave <- true;
+                add est to: estaciones_clave; // La guardamos en lista prioritaria
+            } else {
+                est.nombre_real <- "E-" + string(est.id_visual);
+            }
+        }
 
 		// D. Crear Trenes (inicialmente uno en cada extremo o distribuidos)
 		create tren number: 4 {
@@ -59,10 +88,22 @@ global {
 
 	// Generador de pasajeros constante (simulando hora pico)
  reflex generar_pasajeros when: every(intervalo_llegada_pasajeros #cycle) {
-	// Enfocarse en las estaciones clave creando gente cerca de ellas
- estacion origen <- one_of(estacion); // Aquí podrías filtrar por las 6 principales
- estacion
-		destino <- one_of(estacion - origen);
+	// Lógica de Cuello de Botella:
+        // 80% de probabilidad de que el pasajero aparezca en una estación CLAVE
+        // 20% de probabilidad de que aparezca en cualquier otra
+        
+        estacion origen;
+        estacion destino;
+        
+        if (flip(0.8)) { 
+            origen <- one_of(estaciones_clave); // Quitumbe, Recreo, etc.
+        } else {
+            origen <- one_of(estacion);
+        }
+        
+        // El destino suele ser diferente al origen
+        destino <- one_of(estacion - origen);
+
 		create pasajero {
 			location <- any_location_in(origen.location + 100);
 			target_station <- origen;
@@ -83,28 +124,32 @@ global {
 }
 
 species estacion {
-//string nombre;
-	list<pasajero> passengers_waiting;
+    int id_visual;
+    string nombre_real;
+    bool es_clave <- false;
+    list<pasajero> passengers_waiting;
 
-	// Reflex para calcular congestión (Cuello de botella)
- reflex check_congestion {
-		int cantidad <- length(passengers_waiting);
-		if (cantidad > umbral_rojo) {
-			color <- #red;
-		} else if (cantidad > umbral_amarillo) {
-			color <- #orange;
-		} else {
-			color <- #green;
-		}
+    reflex check_congestion {
+        int cantidad <- length(passengers_waiting);
+        if (cantidad > umbral_rojo) { color <- #red; } 
+        else if (cantidad > umbral_amarillo) { color <- #orange; } 
+        else { color <- #green; }
+    }
 
-	}
-
-	aspect base {
-		draw circle(60) color: #red border: #white;
-		draw "EM" color: #black size: 15 perspective: false at: location + {0, 40};
-		// draw nombre color: #black size: 15 at: location + {0, 50}; 
-	}
-
+    aspect base {
+        // Si es clave, el círculo es más grande
+        float tamano <- es_clave ? 40.0 : 20.0; 
+        
+        // Dibujar círculo de congestión
+        draw circle(tamano + (length(passengers_waiting)/2)) color: color border: #red;
+        
+        // Dibujar Nombre solo si es clave o si hay zoom
+        if (es_clave) {
+            draw nombre_real color: #black size: 20 perspective: false at: location + {0, 50, 10};
+        } else {
+            draw string(id_visual) color: #black size: 12 perspective: false at: location + {0, 30, 5};
+        }
+    }
 }
 
 species tren skills: [moving] {
