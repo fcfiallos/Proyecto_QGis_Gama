@@ -37,7 +37,8 @@ global {
         11::"Recreo", 
         8::"San Francisco", 
         6::"UCE", 
-        4::"Carolina", 
+        4::"Carolina",
+        3::"Iñaquito", 
         1::"Labrador"
     ];
 
