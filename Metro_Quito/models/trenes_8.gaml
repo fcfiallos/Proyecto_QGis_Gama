@@ -11,8 +11,8 @@ global {
     
     date starting_date <- date("2025-12-02 05:30:00");
     float hora_decimal update: current_date.hour + (current_date.minute / 60);
-    string dia_semana <- "Lunes" among: ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
-
+    string dia_semana <- "Monday" among: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+   
     // --- 2. PARÁMETROS ---
     int num_vagones <- 6 min: 3 max: 12;
     int capacidad_max_tren update: num_vagones * 205;
@@ -382,13 +382,14 @@ experiment MetroQuito type: gui {
             // --- AQUI ESTA EL HUD RESTAURADO ---
             graphics "HUD" {
                 bool es_pico <- (hora_decimal >= 6.5 and hora_decimal <= 10.0) or (hora_decimal >= 17.0 and hora_decimal <= 20.0);
-                draw "HORA: " + string(current_date, "HH:mm") at: {100, 2000} color: (es_pico ? #red : #green) font: font("Arial", 35, #bold);
-                draw "DÍA: " + dia_semana at: {100, 2800} color: #white font: font("Arial", 25, #bold);
-                draw "VIAJES: " + viajes_acumulados_hoy at: {100, 3600} color: #yellow font: font("Arial", 25, #bold);
-                draw "TREN: " + num_vagones + " Vagones" at: {100, 4300} color: #orange font: font("Arial", 18);
+                draw "TIME: " + string(current_date, "HH:mm") at: {100, 2000} color: (es_pico ? #red : #green) font: font("Arial", 35, #bold);
+                draw "DAY: " + dia_semana at: {100, 2800} color: #white font: font("Arial", 25, #bold);
+                draw "TRIPS: " + viajes_acumulados_hoy at: {100, 3600} color: #yellow font: font("Arial", 25, #bold);
+                draw "TRAIN: " + num_vagones + " Cars" at: {100, 4300} color: #orange font: font("Arial", 18);
             }
         }
-
+        
+/*
         display "Tablero_Resultados" refresh: every(5 #cycles) background: #white {
             
             // GRÁFICA 1: Serie Temporal
@@ -416,5 +417,7 @@ experiment MetroQuito type: gui {
                 draw "Velocidad Operativa: " + velocidad_operativa + " km/h" at: {50, 550} color: #blue font: font("Arial", 18);
             }
         }
+        * 
+        */
     }
 }

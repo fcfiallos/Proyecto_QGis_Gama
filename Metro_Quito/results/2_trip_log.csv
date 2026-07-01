@@ -1,0 +1,2 @@
+trips_header
+Day,Departure_Time,Arrival_Time,Duration_Minutes,Origin,Destination,Num_Cars,Operating_Speed
